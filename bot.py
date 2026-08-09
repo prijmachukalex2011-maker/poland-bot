@@ -1,39 +1,35 @@
 import os
-import requests
 from flask import Flask, request
+import telebot
+
+# Получаем токен из переменных окружения Vercel
+TOKEN = os.environ.get('BOT_TOKEN')
+bot = telebot.TeleBot(TOKEN)
 
 app = Flask(__name__)
 
-# Ваша ссылка на Google Таблицу (Apps Script)
-GOOGLE_SHEET_URL = "https://script.google.com/macros/s/AKfycbwyB8eXzV6zOeufpaGJE1dJmY1wTxaNEHhFJKMpTFwPaUprJOISk2UagyhGhJdPjQLriQ/exec"
+# Обработка команды /start
+@bot.message_handler(commands=['start'])
+def send_welcome(message):
+    bot.reply_to(message, "Привет! Бот для недвижимости в Польше успешно запущен и работает на Vercel!")
 
-@app.route('/', methods=['POST'])
+# Обработка любых других текстовых сообщений
+@bot.message_handler(func=lambda message: True)
+def echo_all(message):
+    bot.reply_to(message, f"Получено ваше сообщение: {message.text}")
+
+# Главный маршрут, который принимает запросы от Telegram
+@app.route(f'/{TOKEN}', methods=['POST'])
 def webhook():
-    data = request.get_json()
-    
-    if "message" in data:
-        chat_id = data["message"]["chat"]["id"]
-        user_message = data["message"].get("text", "")
-        username = data["message"]["from"].get("username", "Anonymous")
-        
-        ai_response = "Здравствуйте! Чем могу помочь по недвижимости в Польше?"
-        
-        save_lead_to_sheet(username, user_message, ai_response)
-        
-    return {"status": "ok"}
+    json_string = request.get_data().decode('utf-8')
+    update = telebot.types.Update.de_json(json_string)
+    bot.process_new_updates([update])
+    return "!", 200
 
-def save_lead_to_sheet(username, message, ai_response):
-    from datetime import datetime
-    payload = {
-        "date": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        "username": username,
-        "message": message,
-        "ai_response": ai_response
-    }
-    try:
-        requests.post(GOOGLE_SHEET_URL, json=payload)
-    except Exception as e:
-        print("Ошибка записи в таблицу:", e)
+# Страница-заглушка для проверки работы сайта
+@app.route('/')
+def index():
+    return "Bot is running!"
 
 if name == '__main__':
-    app.run(debug=True)
+    app.run()

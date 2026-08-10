@@ -2,11 +2,14 @@ import os
 from flask import Flask, request
 import telebot
 
-# Получаем токен из переменных окружения Vercel
+# 1. Получаем токен из переменных окружения Vercel
 TOKEN = os.environ.get('BOT_TOKEN')
 bot = telebot.TeleBot(TOKEN)
 
-app = Flask(name)
+# ИСПРАВЛЕНО: __name__ вместо name
+app = Flask(__name__)
+
+# --- ОБРАБОТЧИКИ ТЕЛЕГРАМ ---
 
 # Обработка команды /start
 @bot.message_handler(commands=['start'])
@@ -18,18 +21,23 @@ def send_welcome(message):
 def echo_all(message):
     bot.reply_to(message, f"Получено ваше сообщение: {message.text}")
 
-# Главный маршрут, который принимает запросы от Telegram
-@app.route(f'/{TOKEN}', methods=['POST'])
+# --- МАРШРУТЫ FLASK ---
+
+# ИСПРАВЛЕНО: Теперь маршрут просто '/', чтобы совпадал с твоей ссылкой Webhook
+@app.route('/', methods=['POST'])
 def webhook():
-    json_string = request.get_data().decode('utf-8')
-    update = telebot.types.Update.de_json(json_string)
-    bot.process_new_updates([update])
-    return "!", 200
+    if request.method == 'POST':
+        json_string = request.get_data().decode('utf-8')
+        update = telebot.types.Update.de_json(json_string)
+        bot.process_new_updates([update])
+    return "OK", 200
 
-# Страница-заглушка для проверки работы сайта
-@app.route('/')
+# Страница-заглушка для проверки работы сайта в браузере
+@app.route('/test')
 def index():
-    return "Bot is running!"
+    return "Bot is running! Use /test to check this page."
 
-if name == 'main':
+# ИСПРАВЛЕНО: __name__ == '__main__'
+if __name__ == '__main__':
     app.run()
+

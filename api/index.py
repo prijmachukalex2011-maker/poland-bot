@@ -3,7 +3,7 @@ from flask import Flask, request
 import telebot
 
 # 1. Получаем токен из переменных окружения Vercel
-TOKEN = os.environ.get('BOT_TOKEN')
+TOKEN = "8891147516:AAE5pZOd0nYZNr-bkNur1_pxKPQLO6BDWpw"
 bot = telebot.TeleBot(TOKEN)
 
 # ИСПРАВЛЕНО: __name__ вместо name

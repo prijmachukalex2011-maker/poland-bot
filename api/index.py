@@ -21,7 +21,7 @@ def handle_text(message):
     else:
         bot.send_message(message.chat.id, "Я пока не понимаю эту команду.")
 
-@app.route('/', methods=['POST'])
+@app.route(['/', '/api/index'], methods=['POST'])
 def webhook():
     json_string = request.get_data().decode('utf-8')
     update = telebot.types.Update.de_json(json_string)

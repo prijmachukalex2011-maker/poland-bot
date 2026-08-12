@@ -3,7 +3,7 @@ import telebot
 from flask import Flask, request
 
 # Токен берется из настроек Vercel (Environment Variables), а не из кода!
-TOKEN = os.getenv('BOT_TOKEN') 
+TOKEN = os.getenv('BOTTOKEN') 
 bot = telebot.TeleBot(TOKEN)
 app = Flask(__name__)
 

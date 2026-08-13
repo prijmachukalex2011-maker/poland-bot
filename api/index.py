@@ -16,16 +16,27 @@ def send_message(chat_id, text, reply_markup=None):
         payload["reply_markup"] = reply_markup
     return requests.post(url, json=payload)
 
-# ПРОПИСЫВАЕМ КАЖДЫЙ МАРШРУТ ОТДЕЛЬНО (так Flask будет доволен)
+# ПИШЕМ МАРШРУТЫ ОТДЕЛЬНО И ЯВНО
 @app.route('/', methods=['GET', 'POST'])
+def root():
+    return webhook_logic()
+
 @app.route('/api/index', methods=['GET', 'POST'])
+def api_index():
+    return webhook_logic()
+
 @app.route('/test', methods=['GET', 'POST'])
-def webhook():
+def test():
+    return webhook_logic()
+
+def webhook_logic():
+    # Если зашли через браузер (GET)
     if request.method == 'GET':
-        return "🎉 СЕРВЕР РАБОТАЕТ! Теперь всё настроено верно. Пиши боту в Telegram!", 200
+        return "🎉 СЕРВЕР РАБОТАЕТ! Теперь Telegram сможет присылать сообщения!", 200
     
+    # Если пришло сообщение от Telegram (POST)
     if not TOKEN:
-        return "Ошибка: BOTTOKEN не найден в настройках Render", 500
+        return "Ошибка: BOTTOKEN не найден", 500
 
     try:
         data = request.get_json()
@@ -49,7 +60,7 @@ def webhook():
         elif text == '🏙 Купить квартиру':
             send_message(chat_id, "Загружаю список квартир...")
         elif text == '🏠 Купить дом':
-            send_//message(chat_id, "Загружаю список домов...")
+            send_message(chat_id, "Загружаю список домов...")
         elif text == '📞 Контакты':
             send_message(chat_id, "Свяжитесь с нами по телефону: +48 XXX XXX XXX")
         else:
@@ -57,6 +68,7 @@ def webhook():
 
         return "OK", 200
     except Exception as e:
+        print(f"Error: {e}")
         return f"Error: {str(e)}", 500
 
 if __name__ == "__main__":

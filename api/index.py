@@ -5,7 +5,6 @@ from flask import Flask, request
 
 app = Flask(__name__)
 
-# Токен из переменных среды Render
 TOKEN = os.getenv('BOTTOKEN', '')
 API_URL = f"https://api.telegram.org/bot{TOKEN}"
 
@@ -16,7 +15,6 @@ def send_message(chat_id, text, reply_markup=None):
         payload["reply_markup"] = reply_markup
     return requests.post(url, json=payload)
 
-# ПИШЕМ МАРШРУТЫ ОТДЕЛЬНО И ЯВНО
 @app.route('/', methods=['GET', 'POST'])
 def root():
     return webhook_logic()
@@ -30,16 +28,16 @@ def test():
     return webhook_logic()
 
 def webhook_logic():
-    # Если зашли через браузер (GET)
     if request.method == 'GET':
-        return "🎉 СЕРВЕР РАБОТАЕТ! Теперь Telegram сможет присылать сообщения!", 200
+        return "🎉 СЕРВЕР РАБОТАЕТ! Теперь Telegram точно сможет присылать сообщения!", 200
     
-    # Если пришло сообщение от Telegram (POST)
     if not TOKEN:
         return "Ошибка: BOTTOKEN не найден", 500
 
     try:
-        data = request.get_json()
+        # ИСПРАВЛЕНИЕ ТУТ: добавили force=True, чтобы убрать ошибку 415
+        data = request.get_json(force=True) 
+        
         if not data or 'message' not in data:
             return "OK", 200
 

@@ -1,51 +1,66 @@
+import os
+import requests
 from flask import Flask, request
 
 app = Flask(__name__)
 
+# Токен из переменных среды Vercel
+TOKEN = os.getenv('BOTTOKEN', '')
+API_URL = f"https://api.telegram.org/bot{TOKEN}"
+
+def send_message(chat_id, text, reply_markup=None):
+    """Функция для отправки сообщений через requests"""
+    url = f"{API_URL}/sendMessage"
+    payload = {"chat_id": chat_id, "text": text}
+    if reply_markup:
+        payload["reply_markup"] = reply_markup
+    return requests.post(url, json=payload)
+
 @app.route(['/', '/api/index', '/test'], methods=['GET', 'POST'])
 def webhook():
-    # 1. Проверка связи (GET запрос)
     if request.method == 'GET':
-        return "SERVER IS ALIVE! If you see this, Flask is working!", 200
+        return "Бот работает на легком движке! Теперь всё будет стабильно!", 200
     
-    # 2. Обработка сообщения от Telegram (POST запрос)
+    if not TOKEN:
+        return "Ошибка: BOTTOKEN не найден", 500
+
     try:
-        import os
-        import telebot # Импорт только в момент запроса
-        
-        TOKEN = os.getenv('BOTTOKEN')
-        if not TOKEN:
-            return "Error: BOTTOKEN not found in Environment Variables", 500
-            
-        bot = telebot.TeleBot(TOKEN)
-        
-        # Обработчики команд
-        @bot.message_handler(commands=['start'])
-        def start(message):
-            markup = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True)
-            markup.add('🏙 Купить квартиру', '🏠 Купить дом', '📞 Контакты')
-            bot.send_message(message.chat.id, "Добро пожаловать в бот по недвижимости в Польше!", reply_markup=markup)
+        # Получаем данные от Telegram
+        data = request.get_json()
+        if not data or 'message' not in data:
+            return "OK", 200
 
-        @bot.message_handler(func=lambda message: True)
-        def handle_text(message):
-            if message.text == '🏙 Купить квартиру':
-                bot.send_message(message.chat.id, "Загружаю список квартир...")
-            elif message.text == '🏠 Купить дом':
-                bot.send_message(message.chat.id, "Загружаю список домов...")
-            elif message.text == '📞 Контакты':
-                bot.send_message(message.chat.id, "Свяжитесь с нами по телефону: +48 XXX XXX XXX")
-            else:
-                bot.send_message(message.chat.id, "Я пока не понимаю эту команду.")
+        message = data['message']
+        chat_id = message['chat']['id']
+        text = message.get('text', '')
 
-        # Обработка обновления
-        json_string = request.get_data().decode('utf-8')
-        update = telebot.types.Update.de_json(json_string)
-        bot.process_new_updates([update])
+        # Логика бота
+        if text == '/start':
+            # Создаем кнопки в формате JSON (как того требует Telegram API)
+            markup = {
+                "keyboard": [
+                    ["🏙 Купить квартиру", "🏠 Купить дом"],
+                    ["📞 Контакты"]
+                ],
+                "resize_keyboard": True
+            }
+            import json
+            send_message(chat_id, "Добро пожаловать в бот по недвижимости в Польше!", json.dumps(markup))
+        
+        elif text == '🏙 Купить квартиру':
+            send_message(chat_id, "Загружаю список квартир...")
+        elif text == '🏠 Купить дом':
+            send_message(chat_id, "Загружаю список домов...")
+        elif text == '📞 Контакты':
+            send_message(chat_id, "Свяжитесь с нами по телефону: +48 XXX XXX XXX")
+        else:
+            send_message(chat_id, "Я пока не понимаю эту команду.")
+
         return "OK", 200
 
     except Exception as e:
-        print(f"Bot Error: {str(e)}")
-        return f"Internal Bot Error: {str(e)}", 500
+        print(f"Error: {e}")
+        return f"Error: {str(e)}", 500
 
 if __name__ == "__main__":
     app.run()

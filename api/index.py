@@ -5,6 +5,7 @@ from flask import Flask, request
 
 app = Flask(__name__)
 
+# Токен из переменных среды Render
 TOKEN = os.getenv('BOTTOKEN', '')
 API_URL = f"https://api.telegram.org/bot{TOKEN}"
 
@@ -29,15 +30,18 @@ def test():
 
 def webhook_logic():
     if request.method == 'GET':
-        return "🎉 СЕРВЕР РАБОТАЕТ! Теперь всё настроено на максимум. Пиши боту в Telegram!", 200
+        return "🎉 СЕРВЕР РАБОТАЕТ! Теперь просто напиши /start в Telegram!", 200
     
     if not TOKEN:
         return "Ошибка: BOTTOKEN не найден", 500
 
     try:
-        # РЕШЕНИЕ ПРОБЛЕМЫ 400: Читаем данные напрямую из тела запроса
+        # Читаем сырые данные
         raw_data = request.data.decode('utf-8')
         data = json.loads(raw_data)
+        
+        # ПЕЧАТАЕМ В ЛОГИ, ЧТО ЗАПРОС ПРИШЕЛ
+        print("--- ПОЛУЧЕНО СООБЩЕНИЕ ОТ ТЕЛЕГРАМА! ---")
         
         if not data or 'message' not in data:
             return "OK", 200
@@ -61,13 +65,13 @@ def webhook_logic():
         elif text == '🏠 Купить дом':
             send_message(chat_id, "Загружаю список домов...")
         elif text == '📞 Контакты':
-            send_//message(chat_id, "Свяжитесь с нами по телефону: +48 XXX XXX XXX")
+            send_message(chat_id, "Свяжитесь с нами по телефону: +48 XXX XXX XXX")
         else:
             send_message(chat_id, "Я пока не понимаю эту команду.")
 
         return "OK", 200
     except Exception as e:
-        print(f"Error: {e}")
+        print(f"Ошибка обработки сообщения: {e}")
         return f"Error: {str(e)}", 500
 
 if __name__ == "__main__":

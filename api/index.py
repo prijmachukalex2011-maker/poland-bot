@@ -5,7 +5,7 @@ from flask import Flask, request
 
 app = Flask(__name__)
 
-# Токен из настроек Vercel
+# Токен из переменных среды Render
 TOKEN = os.getenv('BOTTOKEN', '')
 API_URL = f"https://api.telegram.org/bot{TOKEN}"
 
@@ -16,14 +16,16 @@ def send_message(chat_id, text, reply_markup=None):
         payload["reply_markup"] = reply_markup
     return requests.post(url, json=payload)
 
-# Обрабатываем все возможные пути, чтобы ЗАБЫТЬ про 404
-@app.route(['/', '/api/index', '/test'], methods=['GET', 'POST'])
+# ПРОПИСЫВАЕМ КАЖДЫЙ МАРШРУТ ОТДЕЛЬНО (так Flask будет доволен)
+@app.route('/', methods=['GET', 'POST'])
+@app.route('/api/index', methods=['GET', 'POST'])
+@app.route('/test', methods=['GET', 'POST'])
 def webhook():
     if request.method == 'GET':
-        return "🎉 ПОБЕДА! Сервер работает, бот запущен! Теперь пиши ему в Telegram!", 200
+        return "🎉 СЕРВЕР РАБОТАЕТ! Теперь всё настроено верно. Пиши боту в Telegram!", 200
     
     if not TOKEN:
-        return "Ошибка: BOTTOKEN не найден в настройках Vercel", 500
+        return "Ошибка: BOTTOKEN не найден в настройках Render", 500
 
     try:
         data = request.get_json()
@@ -47,7 +49,7 @@ def webhook():
         elif text == '🏙 Купить квартиру':
             send_message(chat_id, "Загружаю список квартир...")
         elif text == '🏠 Купить дом':
-            send_message(chat_id, "Загружаю список домов...")
+            send_//message(chat_id, "Загружаю список домов...")
         elif text == '📞 Контакты':
             send_message(chat_id, "Свяжитесь с нами по телефону: +48 XXX XXX XXX")
         else:

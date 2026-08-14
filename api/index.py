@@ -13,17 +13,28 @@ def send_message(chat_id, text, reply_markup=None):
     payload = {"chat_id": chat_id, "text": text}
     if reply_markup:
         payload["reply_markup"] = reply_markup
-    return requests.post(url, json=payload)
-
-# Добавляем /webhook как основной путь
-@app.route('/webhook', methods=['POST'])
-def webhook():
-    if not TOKEN:
-        return "Error: BOTTOKEN missing", 500
     try:
+        return requests.post(url, json=payload, timeout=10)
+    except:
+        return None
+
+# ЭТОТ МАРШРУТ ЛОВИТ ВСЁ (И / , И /test, И /webhook)
+@app.route('/', defaults={'path': ''}, methods=['GET', 'POST'])
+@app.route('/<path:path>', methods=['GET', 'POST'])
+def catch_all(path=''):
+    if request.method == 'GET':
+        return f"✅ СЕРВЕР ЖИВ! Запрос пришел на адрес: /{path}. Теперь пиши боту в Telegram!", 200
+    
+    if not TOKEN:
+        return "Ошибка: BOTTOKEN не найден", 500
+
+    try:
+        # Читаем данные вручную, чтобы избежать ошибок 400/415
         raw_data = request.data.decode('utf-8')
+        if not raw_data:
+            return "OK", 200
+            
         data = json.loads(raw_data)
-        print("--- СООБЩЕНИЕ ПРИШЛО НА /webhook! ---")
         
         if 'message' not in data:
             return "OK", 200
@@ -33,12 +44,15 @@ def webhook():
         text = message.get('text', '').strip()
 
         if text == '/start':
-            markup = {"keyboard": [["🏙 Купить квартиру", "🏠 Купить дом"], ["📞 Контакты"]], "resize_keyboard": True}
+            markup = {
+                "keyboard": [["🏙 Купить квартиру", "🏠 Купить дом"], ["📞 Контакты"]],
+                "resize_keyboard": True
+            }
             send_message(chat_id, "Добро пожаловать в бот по недвижимости в Польше! 🇵🇱", json.dumps(markup))
         elif text == '🏙 Купить квартиру':
             send_message(chat_id, "🔎 Загружаю список квартир...")
         elif text == '🏠 Купить дом':
-            send_//message(chat_id, "🔎 Загружаю список домов...")
+            send_message(chat_id, "🔎 Загружаю список домов...")
         elif text == '📞 Контакты':
             send_message(chat_id, "📲 Контакты: +48 XXX XXX XXX")
         else:
@@ -47,11 +61,7 @@ def webhook():
         return "OK", 200
     except Exception as e:
         print(f"Error: {e}")
-        return "OK", 200 # Всегда отвечаем OK, чтобы Telegram не ругался
-
-@app.route('/')
-def home():
-    return "Бот работает! Перенаправьте вебхук на /webhook", 200
+        return "OK", 200
 
 if __name__ == "__main__":
-    app.run()
+    app.run(host='0.0.0.0', port=5000)
